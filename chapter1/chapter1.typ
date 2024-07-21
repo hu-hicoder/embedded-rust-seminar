@@ -41,7 +41,7 @@
 
 #absolute-place(
   dx: 65%, dy: 40%, 
-  image("image\Rust.png", height: 50%)
+  image("image/Rust.png", height: 50%)
 )
 
 - 安全性
@@ -56,6 +56,26 @@
   - 所有権によるデータ競合の防止
 - バージョンやパッケージ管理
   - cargo
+
+== Crowdstrike事件
+
+#grid(
+  columns: (50%, 50%),
+  [
+    - C++で書かれたCrowdstrikeのソフトウェアが、Windowsのカーネルに何らかの影響を与えブルスクリーンを引き起こすという問題が発生
+    - この問題はぬるぽ#footnote[
+      NullPointerException
+    ]が原因であると噂されている#footnote[  
+    https://x.com/Perpetualmaniac/status/1814376668095754753
+
+    公式発表はされていないので、真偽は不明
+    ]
+      - 型安全性、メモリ安全性であれば、このような問題は発生しない
+  ],
+  figure(
+    image("image/blue_screen.jpg", height: 50%),
+  ),
+)
 
 = 変数
 
@@ -120,6 +140,8 @@
   )
 )
 
+ほかには`char`型(`a`, `b`, `c` ...)や`bool`型(`true`, `false`)などがある
+
 = 配列
 
 == 配列
@@ -135,11 +157,41 @@
   ```,
 )
 
-`i32`が5つの要素を持つ配列`a`を定義
+`i32`が5つの要素を持つ配列`a`を定義で配列の長さは変更できない
+
+#pagebreak()
+
+文字列は文字(`char`)の配列
+文字列には、`&str`型と`String`型がある
+
+#code(
+  lang: "rust",
+  ```rust
+  fn main() {
+      let world: &str = "world!";
+      println!("Hello, {}", world);
+  }
+  ```,
+)
+
+#code(
+  lang: "rust",
+  ```rust
+  fn main() {
+      let mut world: String = String::from("world");
+      world.push_str("!");
+      println!("Hello, {}", world);
+  }
+  ```,
+)
+
+`String`型は配列の長さを変更できる(`Vec`)
+
+= 所有権
 
 == 所有権
 
-所有権の例(変数の所有権の移動)
+Rustのキモいところ
 
 #code(
   lang: "rust",
@@ -148,12 +200,65 @@
         let s1 = String::from("hello");
         let s2 = s1;
 
-        // println!("{}, world!", s1); // value borrowed here after move
-
+        // println!("{}, world!", s1);
         println!("{}, world!", s2);
     }
     ```,
 )
+
+#code(
+  lang: "rust",
+  ```rust
+    fn main() {
+        let s = String::from("hello");
+        takes_ownership(s);
+        // println!("{}", s);
+    }
+
+    fn takes_ownership(some_string: String) {
+        // some_stringがスコープに入る。
+        println!("{}", some_string);
+    }
+    ```,
+)
+
+== ヒープとスタック
+
+所有権を理解するためには、ヒープとスタックの違いを理解する必要がある
+
+#grid(
+  columns: (80%, 20%),
+  [
+    - TEXT領域
+      - 機械語に翻訳されたプログラム
+    - DATA領域
+      - 初期値のデータ
+        - global変数, 静的変数
+    - *HEAP領域*
+      - 寿命があるデータを参照
+        - `malloc()`でスタック領域を確保し、`free()`でメモリの開放
+    - *STACK領域*
+      - 寿命があるデータ
+        - 関数の引数、ローカル変数
+  ],
+  figure(
+    image("image/Memory.svg"),
+  ),
+)
+
+== バイナリを見る
+
+Rustのバイナリを見てよう
+
+#code(
+  lang: "terminal",
+  ```bash
+  $ objdump -S binary_file
+  $ objdump -h binary_file
+  ```
+)
+
+`.text`や`.rodata`や`.bss`(heapに対応)がある
 
 = 参考文献
 

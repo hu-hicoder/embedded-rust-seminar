@@ -24,6 +24,32 @@
 #let (slide, empty-slide, title-slide, focus-slide) = utils.slides(s)
 #show: slides
 
+= はじめに
+
+組み込みRust講習会へようこそ
+
+#h(1em)
+
+#box(stroke: black, inset: 0.7em)[この講習会を開いた理由]
+
+- 組み込みRustが難しくて私の学習が進まないので、一緒に学べる仲間を作りたい
+- Rustの普及
+- ソフト、競プロだけをやるな！！ハードもやれ！！
+
+= 目標
+
+#grid(
+  columns: (70%, 30%),
+  column-gutter: 2%,
+  [
+    - Rustの基本的な文法を理解する
+    - 難解な所有権、ライフタイムの概念を理解する
+    - 「基礎からわかる組み込みRust」や組み込みRustの公式ドキュメントを難なく読めるようになる
+  ],
+  figure(
+    image("image/embedded_rust_book.jpg"),
+  ),
+)
 
 = Rustとは
 
@@ -50,8 +76,6 @@
     - *所有権*
     - *ライフタイム*
 - 処理速度の速さ
-  - VMを使わない
-  - メモリ管理を自動で行わない
 - 並行処理
   - 所有権によるデータ競合の防止
 - バージョンやパッケージ管理
@@ -162,7 +186,8 @@
 #pagebreak()
 
 文字列は文字(`char`)の配列
-文字列には、`&str`型と`String`型がある
+
+文字列は、主に`&str`型と`String`型がある
 
 #code(
   lang: "rust",
@@ -300,9 +325,9 @@ Rustのトレイトは、複数の型で共有される振る舞い（メソッ�
   ```
 )
 
-= 所有権
+= 所有権とライフタイム
 
-== 所有権
+== 所有権の不便な例
 
 Rustのキモいところ
 
@@ -347,11 +372,11 @@ Rustのキモいところ
       - 初期値のデータ
         - global変数, 静的変数
     - *HEAP領域*
-      - 寿命があるデータを参照
+      - 寿命があるデータ（可変長）
         - `malloc()`でスタック領域を確保し、`free()`でメモリの開放
     - *STACK領域*
-      - 寿命があるデータ
-        - 関数の引数、ローカル変数
+      - stack(下から積み上げ)をしていく寿命があるデータ（固定長）
+        - ヒープ領域を参照するポインタを持つことが多い
   ],
   figure(
     image("image/Memory.svg"),
@@ -372,12 +397,64 @@ Rustのバイナリを見てよう
 
 `.text`や`.rodata`や`.bss`(heapに対応)がある
 
+== 所有権のルール
+
+- 変数一つに対して、所有権は一つ
+- 所有権が動くと、変数は無効になる
+- &:参照
+  - 所有権を移さずに借用できる
+
+
+== 問題1
+
+なにがわるい？
+
+#code(
+  lang: "rust",
+  ```rust
+  fn main() {
+    let mut v = vec![1, 2, 3, 4, 5];
+    let first = &v[0];
+    v.clear();
+    println!("The first element is: {}", first);
+  }
+  ```
+)
+
+#pause
+
+vectorの要素への参照を保持したまま、vectorの内容をクリアしようとしています。これは、無効な参照を引き起こす可能性があるため、コンパイラによってエラーとして検出されます。
+
+== 問題2
+
+#code(
+  lang: "rust",
+  ```rust
+  struct Person {
+      name: String,
+      age: u32,
+  }
+
+  fn main() {
+      let p = Person {
+          name: String::from("Alice"),
+          age: 30,
+      };
+      let name = p.name;
+
+      println!("The person's age is: {}", p.age);
+      println!("The person's name is: {}", p.name);
+  }
+  ```
+)
+
+#pause
+
+構造体の一部のフィールド（name）を移動させると、元の構造体全体が部分的に移動した状態になり、移動されたフィールドにアクセスできなくなる
+
 = 参考文献
 
 - The Rust Programming Language 日本語版 #set_link("https://doc.rust-jp.rs/book-ja/")
   - コードをたくさん引用しました。ありがとうございます。
-
-// 今後書く予定のもの
-
-// - Rustの所有権
-// - トレイトとジェネリクス
+- 【Rust入門】宮乃やみさんにRustの所有権とライフタイムを絶対理解させる #set_link("https://www.youtube.com/watch?v=lG7YbM2AfU8")
+  - 所有権の世界一わかりやすい説明

@@ -191,6 +191,115 @@
 
 省略
 
+= 構造体とメソット
+
+#code(
+  lang: "rust",
+  ```rust
+  #[derive(Debug)]
+  struct Rectangle {
+      width: u32,
+      height: u32,
+  }
+
+  impl Rectangle {
+      fn area(&self) -> u32 {
+          self.width * self.height
+      }
+  }
+
+  fn main() {
+      let rect1 = Rectangle { width: 30, height: 50 };
+
+      println!(
+          "The area of the rectangle is {} square pixels.",
+          rect1.area()
+      );
+  }
+  ```
+)
+
+関連するデータと機能を1つの単位にまとめることで、コードの体系化と再利用性が向上する
+
+= ジェネリック
+
+プログラムを抽象化すると、コードの再利用性が高まり、可読性が向上する
+
+#code(
+  lang: "rust",
+  ```rust
+  struct Point<T> {
+      x: T,
+      y: T,
+  }
+
+  fn main() {
+      let integer = Point { x: 5, y: 10 };
+      let float = Point { x: 1.0, y: 4.0 };
+  }
+  ```
+)
+
+ジェネリック`<T>`を用いることで、`i32`型や`f64`型などの複数型を受け取ることができる#footnote[
+  ジェネリックが用いられている標準ライブラリの例: `Option<T>`, `Result<T, E>`
+
+  この型はめちゃくちゃ深いので、興味があれば調べてみてください
+]
+
+= トレイト
+
+Rustのトレイトは、複数の型で共有される振る舞い（メソッド）を定義するインターフェースのような機能
+
+以下の例では、`Summary`トレイトを定義し、`NewsArticle`と`Tweet`構造体に`Summary`トレイトを実装している
+
+#code(
+  lang: "rust",
+  ```rust
+  pub trait Summary {
+      fn summarize(&self) -> String;
+  }
+
+  pub struct NewsArticle {
+      pub headline: String,
+      pub location: String,
+      pub author: String,
+      pub content: String,
+  }
+
+  impl Summary for NewsArticle {
+      fn summarize(&self) -> String {
+          format!("{}, by {} ({})", self.headline, self.author, self.location)
+      }
+  }
+
+  pub struct Tweet {
+      pub username: String,
+      pub content: String,
+      pub reply: bool,
+      pub retweet: bool,
+  }
+
+  impl Summary for Tweet {
+      fn summarize(&self) -> String {
+          format!("{}: {}", self.username, self.content)
+      }
+  }
+
+  fn main() {
+      let tweet = Tweet {
+          username: String::from("horse_ebooks"),
+          content: String::from(
+              "of course, as you probably already know, people",
+          ),
+          reply: false,
+          retweet: false,
+    };
+
+    println!("1 new tweet: {}", tweet.summarize());
+  }
+  ```
+)
+
 = 所有権
 
 == 所有権
@@ -204,7 +313,7 @@ Rustのキモいところ
         let s1 = String::from("hello");
         let s2 = s1;
 
-        // println!("{}, world!", s1);
+        // println!("{}, world!", s1); // ERROR
         println!("{}, world!", s2);
     }
     ```,
@@ -216,11 +325,10 @@ Rustのキモいところ
     fn main() {
         let s = String::from("hello");
         takes_ownership(s);
-        // println!("{}", s);
+        // println!("{}", s); // ERROR
     }
 
     fn takes_ownership(some_string: String) {
-        // some_stringがスコープに入る。
         println!("{}", some_string);
     }
     ```,
@@ -266,7 +374,8 @@ Rustのバイナリを見てよう
 
 = 参考文献
 
-- Rust公式ドキュメント #set_link("https://doc.rust-jp.rs/book-ja/")
+- The Rust Programming Language 日本語版 #set_link("https://doc.rust-jp.rs/book-ja/")
+  - コードをたくさん引用しました。ありがとうございます。
 
 // 今後書く予定のもの
 

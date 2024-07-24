@@ -80,24 +80,24 @@
   - 所有権によるデータ競合の防止
 - バージョンやパッケージ管理
   - cargo
+- テストがしやすい
 
-== Crowdstrike事件
+== 全銀システム障害
 
 #grid(
   columns: (50%, 50%),
+  gutter: 2%,
   [
-    - C++で書かれたCrowdstrikeのソフトウェアが、Windowsのカーネルに何らかの影響を与えブルスクリーンを引き起こすという問題が発生
-    - この問題はぬるぽ#footnote[
-      NullPointerException
-    ]が原因であると噂されている#footnote[  
-    https://x.com/Perpetualmaniac/status/1814376668095754753
+    - 発生時期: 2023年10月
+    - 影響: 全国の銀行間のデータ通信に支障
+    - 作業: 32bitから64bitへの移行
+    - 作業領域が不足していてもテーブルは生成されたが、その際に他のプログラムが使う領域に上書き
 
-    公式発表はされていないので、真偽は不明
-    ]
-      - 型安全性、メモリ安全性であれば、このような問題は発生しない
+    #h(1em)
+
   ],
   figure(
-    image("image/blue_screen.jpg", height: 50%),
+    image("image/zengin.jpg"),
   ),
 )
 
@@ -399,15 +399,105 @@ Rustのバイナリを見てよう
 
 == 所有権のルール
 
-- 変数一つに対して、所有権は一つ
-- 所有権が動くと、変数は無効になる
-- &:参照
-  - 所有権を移さずに借用できる
+- *値(データ)は所有者と呼ばれる変数と対応*
+- *いかなる時も値の所有者は一つ*
+- *所有者がスコープから外れたら、値は破棄*
 
+#h(2em)
+
+参照渡し(`&`)を使うことで、所有権を移さずに値を借用
+
+#pause
+
+#align(center)[#text(size: 1.5em)[むずかしい]]
+
+== 所有権のイメージ
+
+#grid(
+  columns: (50%, 50%),
+  gutter: 2%,
+  code(
+    lang: "rust",
+    ```rust
+    fn main() {
+        let x = String::from("hello world");
+        func(x);
+    }
+
+    fn func(s: String) {
+        println!("{}", s);
+    }
+    ```
+  ),
+  figure(
+    image("image/xs.svg"),
+  ),
+)
+
+`String`の実態はポインタ、長さ、容量の3つの要素とヒープ上の文字列
+
+#box(stroke: black, inset: 0.7em)[データの流れ]
+
++ `x`がstack + ヒープにメモリ確保(`malloc`) + `x`がデータの所有権を持つ
++ `s`がstack + 所有権の移動(move)
++ `func`のスコープの外で`s`が破棄(push)、ヒープのメモリを解放(`free`)
+
+#grid(
+  columns: (50%, 50%),
+  gutter: 2%,
+  code(
+    lang: "rust",
+    ```rust
+    fn main() {
+        let x = String::from("hello world");
+        func(&x);
+    }
+
+    fn func(f: &str) {
+        println!("{}", f);
+    }
+    ```
+  ),
+  figure(
+    image("image/xf.svg"),
+  ),
+)
+
+`&str`の実態はポインタと長さの2つの要素とヒープ上の文字列
+
+#box(stroke: black, inset: 0.4em)[データの流れ]
+
++ `x`がstack + ヒープにメモリ確保(`malloc`) + `x`がデータの所有権を持つ
++ `f`がstack + xを参照 + 所有権の移動が起こらない
++ `func`のスコープの外で`f`が破棄(pop)、所有権を持っていないのでヒープのメモリは解放されない
+
+== ライフタイム
+
+`func`あとに`x`を使えるか使えないかは
+- heapのメモリが解放されているかどうか
+- 所有権を持っているかどうか
+
+*ライフタイム*(その参照が有効になるスコープ)が自然にわかる
+
+#code(
+  lang: "rust", 
+  ```rust
+  {
+      let r;
+
+      {
+          let x = 5;
+          r = &x;
+      }
+
+      println!("r: {}", r); // ERROR
+  }
+  ```
+)
 
 == 問題1
 
-なにがわるい？
+通る？
 
 #code(
   lang: "rust",
@@ -451,6 +541,17 @@ vectorの要素への参照を保持したまま、vectorの内容をクリア�
 #pause
 
 構造体の一部のフィールド（name）を移動させると、元の構造体全体が部分的に移動した状態になり、移動されたフィールドにアクセスできなくなる
+
+= $+alpha$
+
+追加でしゃべりたいこと
+
+- `ptr`と`len`の万能さ
+  - 配列のスライス
+  - 文字列の抽出
+  - `Copy`しないことのメモリ効率
+- `'static`, `const`のデータは`.rodata`にある
+- `let x = 5; let y = x;`は`Copy`なので注意
 
 = 参考文献
 

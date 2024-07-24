@@ -30,6 +30,7 @@
 
 - マイコンを使ったシステム
 - LEDを光らせたり、モーターを動かすところから、車載システム、IoTまで
+- aaaaaa
 
 #figure(
   image("image/embedded_example.jpg", height: 90%), caption: [組み込みの例 (組込みシステム産業振興機構)]

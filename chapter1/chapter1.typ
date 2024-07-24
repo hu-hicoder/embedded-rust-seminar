@@ -97,7 +97,7 @@
 
   ],
   figure(
-    image("image/zengin.jpg"),
+    image("image/syazai_kaiken.png"),
   ),
 )
 

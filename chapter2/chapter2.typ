@@ -2,12 +2,12 @@
 #import "@preview/pinit:0.1.3": *
 #import "@preview/sourcerer:0.2.1": code
 
-#set text(font: "Meiryo UI", lang: "ja")
+#set text(font: "Noto Sans JP", lang: "ja")
 
 #let set_link(url) = link(url)[#text(olive)[[link]]]
 
 // Themes: default, simple, metropolis, dewdrop, university, aqua
-#let s = themes.aqua.register(aspect-ratio: "16-9")
+#let s = themes.metropolis.register(aspect-ratio: "16-9")
 #let s = (s.methods.info)(
   self: s,
   title: [LT会],
@@ -32,7 +32,7 @@
 - LEDを光らせたり、モーターを動かすところから、車載システム、IoTまで
 
 #figure(
-  image("image\embedded_example.jpg", height: 90%), caption: [組み込みの例 (組込みシステム産業振興機構)]
+  image("image/embedded_example.jpg", height: 90%), caption: [組み込みの例 (組込みシステム産業振興機構)]
 )
 
 = Rustとは
@@ -41,7 +41,7 @@
 
 #absolute-place(
   dx: 70%, dy: 40%, 
-  image("image\Rust.png", height: 50%)
+  image("image/Rust.png", height: 50%)
 )
 
 - 安全性
@@ -289,7 +289,7 @@ OSがない環境では、main関数は使えず、エントリーポイント(�
 
 #pause
 
-#figure(image("image\errors.png"))
+#figure(image("image/errors.png"))
 
 エラー文が出てきて、プログラムが止まること
 
@@ -330,7 +330,7 @@ Picoのハードウェアのクレート
 
 *`rp_pico::hal` と `embedded_hal`*
 
-#figure(image("image\HAL.png", height: 85%))
+#figure(image("image/HAL.png", height: 85%))
 
 == 優先度 高
 
@@ -350,7 +350,7 @@ microcontroller」
 
 *言い換えると、`embedded_hal`さえ理解すれば、ほかのマイコンでも同様にプログラミングができる*
 
-#figure(image("image\crate.png"))
+#figure(image("image/crate.png"))
 
 == 優先度 高
 
@@ -391,7 +391,7 @@ microcontroller」
 
 - 同時アクセスによるデータ競合を防ぐ
 
-#figure(image("image\ownership.png", height: 50%))
+#figure(image("image/ownership.png", height: 50%))
 
 == 優先度 高
 
@@ -416,7 +416,7 @@ LEDを点灯させるために出力モードを指定している。
 
 ここで、重要なのは型である。
 
-#figure(image("image\led_types.png"))
+#figure(image("image/led_types.png"))
 
 詳しく書くと`Pin<Gpio25, FunctionSio<SioOutput>, PullDown>`となっている。
 

@@ -2,7 +2,7 @@
 #import "@preview/pinit:0.1.3": *
 #import "@preview/sourcerer:0.2.1": code
 
-#set text(font: "Noto Sans JP")
+#set text(font: "Noto Sans JP", lang: "ja")
 
 #let set_link(url) = link(url)[#text(olive)[[link]]]
 

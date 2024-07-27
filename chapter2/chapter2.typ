@@ -10,8 +10,8 @@
 #let s = themes.metropolis.register(aspect-ratio: "16-9")
 #let s = (s.methods.info)(
   self: s,
-  title: [LT会],
-  subtitle: [組み込みRust],
+  title: [組み込みRust],
+  subtitle: [組み込みRust編],
   author: [JIJINBEI],
   date: datetime.today(),
   institution: [HiCoder],
@@ -30,84 +30,10 @@
 
 - マイコンを使ったシステム
 - LEDを光らせたり、モーターを動かすところから、車載システム、IoTまで
-- aaaaaa
 
 #figure(
   image("image/embedded_example.jpg", height: 90%), caption: [組み込みの例 (組込みシステム産業振興機構)]
 )
-
-= Rustとは
-
-== Rustの特徴
-
-#absolute-place(
-  dx: 70%, dy: 40%, 
-  image("image/Rust.png", height: 50%)
-)
-
-- 安全性
-  - 型安全性
-  - メモリ安全性
-    - *所有権*
-    - *ライフタイム*
-- 処理速度の速さ
-  - VMを使わない
-  - メモリ管理を自動で行わない
-- 並行処理
-  - 所有権によるデータ競合の防止
-- バージョンやパッケージ管理
-  - cargo
-
-== 所有権
-
-所有権の例(変数の所有権の移動)
-
-#code(
-  lang: "rust",
-  ```rust
-    fn main() {
-        let s1 = String::from("hello");
-        let s2 = s1; // 変数s1から変数s2に所有権の移動が発生
-
-        // 所有権が移動しているので、変数s1を利用するとコンパイルエラーが起きる
-        // println!("{}, world!", s1); // value borrowed here after move
-
-        println!("{}, world!", s2);
-    }
-    ```,
-)
-
-`s1`は、値と所有権を持っているが、`s2`に所有権を移動すると、`s1`は利用できなくなる。
-
-#align(center)[
-  *値は一つであることが保証される*
-]
-
-== 所有権
-
-所有権の例(関数の所有権の移動)
-
-#code(
-  lang: "rust",
-  ```rust
-fn main() {
-    let s = String::from("hello"); 
-    takes_ownership(s);
-    // println!("{}", s); // コンパイルエラーが起きる
-} 
-
-fn takes_ownership(some_string: String) {
-    // sの所有権が関数に移動
-    println!("{}", some_string);
-} 
-```,
-)
-
-`some_string`が所有権を持っているので、sは利用できなくなる
-
-#align(center)[
-  *値は一つであることが保証される*#footnote[これの利点は後ほど...]
-]
 
 = なぜ組み込みでRust
 
@@ -116,8 +42,8 @@ fn takes_ownership(some_string: String) {
 - 安全性
   - 型安全性
   - メモリ安全性
-    - *所有権*
-    - *ライフタイム*
+    - 所有権
+    - ライフタイム
 - 処理速度の速さ
   - メモリ管理を自動で行わない
 - 並行処理
@@ -125,11 +51,9 @@ fn takes_ownership(some_string: String) {
 - バージョンやパッケージ管理
   - Cargo
 
-#v(1em)
 #align(center)[
   *Rustの言語の特徴が使え、CやC++よりも安全にプログラミングができる*
 ]
-
 
 == Rustのデメリット
 
@@ -140,79 +64,33 @@ fn takes_ownership(some_string: String) {
 #pause
 
 #absolute-place(dx: 75%, dy: 40%, [情報が少ない])
-#absolute-place(dx: 75%, dy: 100%, [コミュニティが小さい])
-#absolute-place(dx: 15%, dy: 100%, [Rustの所有権システムやライフタイムが理解しづらい])
+#absolute-place(dx: 75%, dy: 90%, [コミュニティが小さい])
+#absolute-place(dx: 5%, dy: 90%, [Rustの所有権システムやライフタイムが理解しづらい])
 #absolute-place(dx: 15%, dy: 40%, [組み込みRust特有の機能の理解])
-#absolute-place(dx: 5%, dy: 70%, [型でコンパイルが通らない])
-#absolute-place(dx: 80%, dy: 70%, [基本的に英語の文献])
+#absolute-place(dx: 5%, dy: 65%, [型でコンパイルが通らない])
+#absolute-place(dx: 80%, dy: 65%, [基本的に英語の文献])
 
-= 組み込みRustのデモ
+= 組み込みRustを試してみよう
 
-== Rustのコード
+== Lチカを試してみよう!!
 
-rp-picoクレートの`pico_blinky.rs`から抜粋。
+`https://github.com/rp-rs/rp2040-project-template`のテンプレートを試し、ラズピコを0.5秒毎にLEDを点滅させるコードを書いてみよう
 
-Raspberry pi picoを0.5秒毎にLEDを点滅させる
+#box(stroke: black, inset: 7pt)[方法]
 
++ リンクを参考にライブラリをインストール
++ `cargo install cargo-generate`でcargo-generateをインストール
++ rp-picoのテンプレートをダウンロード
 #code(
-  lang: "rust",
-  ```rust
-    #![no_std]
-    #![no_main]
-
-    use rp_pico::entry;
-
-    use embedded_hal::digital::OutputPin;
-    use panic_halt as _;
-
-    use rp_pico::hal::prelude::*;
-
-    use rp_pico::hal::pac;
-    use rp_pico::hal;
-
-    #[entry]
-    fn main() -> ! {
-        let mut pac = pac::Peripherals::take().unwrap();
-        let core = pac::CorePeripherals::take().unwrap();
-
-        let mut watchdog = hal::Watchdog::new(pac.WATCHDOG);
-
-        let clocks = hal::clocks::init_clocks_and_plls(
-            rp_pico::XOSC_CRYSTAL_FREQ,
-            pac.XOSC,
-            pac.CLOCKS,
-            pac.PLL_SYS,
-            pac.PLL_USB,
-            &mut pac.RESETS,
-            &mut watchdog,
-        )
-        .ok()
-        .unwrap();
-
-        let mut delay = cortex_m::delay::Delay::new(core.SYST, clocks.system_clock.freq().to_Hz());
-
-        let sio = hal::Sio::new(pac.SIO);
-
-        let pins = rp_pico::Pins::new(
-            pac.IO_BANK0,
-            pac.PADS_BANK0,
-            sio.gpio_bank0,
-            &mut pac.RESETS,
-        );
-
-        let mut led_pin = pins.led.into_push_pull_output();
-
-        loop {
-            led_pin.set_high().unwrap();
-            delay.delay_ms(500);
-            led_pin.set_low().unwrap();
-            delay.delay_ms(500);
-        }
-    }
-    ```,
+  lang: "terminal",
+  ```bash
+  cargo generate https://github.com/rp-rs/rp2040-project-template
+  ```,
 )
+4. `config.toml`が`runner = "elf2uf2-rs -d"`となっていることを確認
+4. `cargo run`でビルド
 
-== Rustのコード
+== Lチカコードの解説
 
 ここで、本質的な部分はどこか？
 
@@ -378,7 +256,7 @@ microcontroller」
 ]
 
 #pause
-#v(1em)
+
 
 △ 今回の場合、`pac.IO_BANK0`などが、ほかのところでは使えなくなっている(pins2は実装できない)
 

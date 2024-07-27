@@ -82,25 +82,6 @@
   - cargo
 - テストがしやすい
 
-== 全銀システム障害
-
-#grid(
-  columns: (50%, 50%),
-  gutter: 2%,
-  [
-    - 発生時期: 2023年10月
-    - 影響: 全国の銀行間のデータ通信に支障
-    - 作業: 32bitから64bitへの移行
-    - 作業領域が不足していてもテーブルは生成されたが、その際に他のプログラムが使う領域に上書き
-
-    #h(1em)
-
-  ],
-  figure(
-    image("image/syazai_kaiken.png"),
-  ),
-)
-
 = 変数
 
 == 変数
@@ -110,13 +91,13 @@
 #code(
   lang: "rust",
   ```rust
-    fn main() {
-        let x = 5;
-        println!("The value of x is: {}", x);
-        x = 6; // ERROR
-        println!("The value of x is: {}", x);
-    }
-    ```,
+  fn main() {
+      let x = 5;
+      println!("The value of x is: {}", x);
+      x = 6; // ERROR
+      println!("The value of x is: {}", x);
+  }
+  ```,
 )
 
 変数を可変するには、`mut`を使う
@@ -175,9 +156,9 @@
 #code(
   lang: "rust",
   ```rust
-    fn main() {
-        let a: [i32; 5] = [1, 2, 3, 4, 5];
-    }
+  fn main() {
+      let a: [i32; 5] = [1, 2, 3, 4, 5];
+  }
   ```,
 )
 
@@ -268,12 +249,12 @@
 ジェネリック`<T>`を用いることで、`i32`型や`f64`型などの複数型を受け取ることができる#footnote[
   ジェネリックが用いられている標準ライブラリの例: `Option<T>`, `Result<T, E>`
 
-  この型はめちゃくちゃ深いので、興味があれば調べてみてください
+  この型はエラーを扱うときに用いられる型
 ]
 
 = トレイト
 
-Rustのトレイトは、複数の型で共有される振る舞い（メソッド）を定義するインターフェースのような機能
+トレイトは、複数の型で共有される振る舞い（メソッド）を定義するインターフェースのような機能
 
 以下の例では、`Summary`トレイトを定義し、`NewsArticle`と`Tweet`構造体に`Summary`トレイトを実装している
 
@@ -329,35 +310,53 @@ Rustのトレイトは、複数の型で共有される振る舞い（メソッ�
 
 == 所有権の不便な例
 
+*所有権*とは、メモリの解放を自動的に行うための仕組み
+
 Rustのキモいところ
 
 #code(
   lang: "rust",
   ```rust
-    fn main() {
-        let s1 = String::from("hello");
-        let s2 = s1;
+  fn main() {
+      let s1 = String::from("hello");
+      let s2 = s1;
 
-        // println!("{}, world!", s1); // ERROR
-        println!("{}, world!", s2);
-    }
-    ```,
+      // println!("{}, world!", s1); // ERROR
+      println!("{}, world!", s2);
+  }
+  ```,
 )
 
 #code(
   lang: "rust",
   ```rust
-    fn main() {
-        let s = String::from("hello");
-        takes_ownership(s);
-        // println!("{}", s); // ERROR
-    }
+  fn main() {
+      let s = String::from("hello");
+      takes_ownership(s);
+      // println!("{}", s); // ERROR
+  }
 
-    fn takes_ownership(some_string: String) {
-        println!("{}", some_string);
-    }
-    ```,
+  fn takes_ownership(some_string: String) {
+      println!("{}", some_string);
+  }
+  ```,
 )
+
+
+== 所有権のルール
+
+- *値(データ)は所有者と呼ばれる変数と対応（1対1対応）*
+- *変数をアサインする(`let x = y`)際や、関数に引数を値渡しする(`foo(x)`)際は、所有権が移動（move）*
+- *所有者がスコープから外れたら、値は破棄*
+- *参照渡し(`&`)を使うことで、所有権を移さずに値を借用*
+  - *生存期間の長いものが、短いものを参照してはいけない*
+
+#pause
+
+#h(2em)
+
+#align(center)[#text(size: 1.5em)[？？？？？？？？]]
+
 
 == ヒープとスタック
 
@@ -372,11 +371,11 @@ Rustのキモいところ
       - 初期値のデータ
         - global変数, 静的変数
     - *HEAP領域*
-      - 寿命があるデータ（可変長）
-        - `malloc()`でスタック領域を確保し、`free()`でメモリの開放
+      - 寿命があるデータ
+        - `malloc()`でヒープ領域を確保し、`free()`でメモリの開放
     - *STACK領域*
       - stack(下から積み上げ)をしていく寿命があるデータ（固定長）
-        - ヒープ領域を参照するポインタを持つことが多い
+        - ヒープ領域を参照するポインタを持つ
   ],
   figure(
     image("image/Memory.svg"),
@@ -395,21 +394,18 @@ Rustのバイナリを見てよう
   ```
 )
 
-`.text`や`.rodata`や`.bss`(heapに対応)がある
+`.text`や`.rodata`や`.bss`(heapに対応？)がある
 
-== 所有権のルール
+== 所有権のイメージ
 
-- *値(データ)は所有者と呼ばれる変数と対応*
-- *いかなる時も値の所有者は一つ*
-- *所有者がスコープから外れたら、値は破棄*
+所有権は、*変数にメモリの解放をする責任を持たせる*
 
-#h(2em)
+#box(stroke: black, inset: 0.5em)[知っておくこと]
 
-参照渡し(`&`)を使うことで、所有権を移さずに値を借用
+- スタックにはデータのポインタが、ヒープにはデータがある
+- 変数の定義で、スタックは下から積み上げられ、ヒープでデータを確保される
+- 所有権を持っている変数は、スコープ#footnote[`{}`　の領域内]の外で、ヒープのメモリは解放され、スタックはポップされる
 
-#pause
-
-#align(center)[#text(size: 1.5em)[むずかしい]]
 
 == 所有権のイメージ
 
@@ -442,6 +438,13 @@ Rustのバイナリを見てよう
 + `s`がstack + 所有権の移動(move)
 + `func`のスコープの外で`s`が破棄(push)、ヒープのメモリを解放(`free`)
 
+#pagebreak()
+
+- データのコピーはコストがかかるが、今回の例ではコストが小さい
+- `func(x)`のあとで`x`は、メモリを解放されているので使うことはできない
+
+#pagebreak()
+
 #grid(
   columns: (50%, 50%),
   gutter: 2%,
@@ -463,7 +466,7 @@ Rustのバイナリを見てよう
   ),
 )
 
-`&str`の実態はポインタと長さの2つの要素とヒープ上の文字列
+`str`の実態はポインタと長さの2つの要素とヒープ上の文字列
 
 #box(stroke: black, inset: 0.4em)[データの流れ]
 
@@ -471,11 +474,22 @@ Rustのバイナリを見てよう
 + `f`がstack + xを参照 + 所有権の移動が起こらない
 + `func`のスコープの外で`f`が破棄(pop)、所有権を持っていないのでヒープのメモリは解放されない
 
+#pagebreak()
+
+- まず参照は危険という認識が必要
+  - 参照先を書き換えると、そのデータを利用している他の参照にも影響がある
+
+#h(2em)
+
+
+- `func(&x)`のあとで`x`は、メモリを解放されていないので使うことができる
+
 == ライフタイム
 
-`func`あとに`x`を使えるか使えないかは
-- heapのメモリが解放されているかどうか
-- 所有権を持っているかどうか
+- `x`のほうが`f`よりも長く生存している
+- `func`あとに`x`を使えるか使えないかは
+  - heapのメモリが解放されているかどうか
+  - 所有権を持っているかどうか
 
 *ライフタイム*(その参照が有効になるスコープ)が自然にわかる
 
@@ -495,6 +509,15 @@ Rustのバイナリを見てよう
   ```
 )
 
+== メモリ安全性
+
+ヒープ領域が`free`されると、スタック領域にあるポインタが無効になる
+
+所有権では絶対に以下の問題が起こらない
+
+- ダンダリングポインタ：メモリ領域の無効な場所を指し示しているポインタ
+  - 2重freeが起こると、メモリの破壊が起こる
+
 == 問題1
 
 通る？
@@ -513,9 +536,57 @@ Rustのバイナリを見てよう
 
 #pause
 
-vectorの要素への参照を保持したまま、vectorの内容をクリアしている。これは、無効な参照を引き起こす可能性があるため、コンパイラによってエラーとして検出されます。
+vectorの要素への参照を保持したまま、vectorの内容をクリアしている。
+
+これは、無効な参照を引き起こす可能性があるため、コンパイラによってエラーとして検出されます。
 
 == 問題2
+
+#code(
+  lang: "rust",
+  ```rust
+  fn add_to_slice(slice: &[str], new_item: &str) {
+      slice.push(new_item);
+  }
+
+  fn main() {
+      let mut words = vec!["hello", "world"];
+      let slice = &mut words[..];
+      add_to_slice(slice, "!");
+  }
+  ```
+)
+
+#pause
+
+`&[str]`は`push`というメソッドを持っていない
+
+もっていたとしても、所有権を借りている身で`words`の配列の長さを変更することはできない
+
+== 問題3
+
+#code(
+  lang: "rust",
+  ```rust
+  fn get_slice_length(slice: &[str]) -> usize {
+      slice.len()
+  }
+
+  fn main() {
+      let words = vec!["hello", "world"];
+      let slice = &words[..];
+      println!("Slice length: {}", get_slice_length(slice));
+  }
+  ```
+)
+
+#pause
+
+`&[str]`で参照渡しをしており、データの所有権を移動していない
+
+データの長さを取得している(非加工)ので、問題ない
+
+== 問題4
 
 #code(
   lang: "rust",
@@ -552,6 +623,8 @@ vectorの要素への参照を保持したまま、vectorの内容をクリア�
   - `Copy`しないことのメモリ効率
 - `'static`, `const`のデータは`.rodata`にある
 - `let x = 5; let y = x;`は`Copy`なので注意
+- Rustはバッファオーバーフロー攻撃がないメモリ安全
+// - 並列処理と所有権
 
 = 参考文献
 

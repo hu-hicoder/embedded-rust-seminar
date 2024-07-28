@@ -69,6 +69,7 @@
 #absolute-place(dx: 15%, dy: 40%, [組み込みRust特有の機能の理解])
 #absolute-place(dx: 5%, dy: 65%, [型でコンパイルが通らない])
 #absolute-place(dx: 80%, dy: 65%, [基本的に英語の文献])
+#absolute-place(dx: 40%, dy: 110%, [どういうときにunsafeか])
 
 = 組み込みRustを試してみよう
 
@@ -87,45 +88,53 @@
   cargo generate https://github.com/rp-rs/rp2040-project-template
   ```,
 )
-4. `config.toml`が`runner = "elf2uf2-rs -d"`となっていることを確認
-4. `cargo run`でビルド
+4. `config.toml`が`runner = "elf2uf2-rs -d"`となっていることを確認#footnote[
+  elf2uf2-rsは、uf2ファイルを作成するツールで、probe-rsはデバックまで行えるツール(後述予定)
+]
++ `cargo run`でビルド
 
 == Lチカコードの解説
 
-ここで、本質的な部分はどこか？
+先程のコードで本質的な部分はどこか？
 
 #pause
 
-#code(lang: "rust", ```rust
-      loop {
-          led_pin.set_high().unwrap();
-          delay.delay_ms(500);
-          led_pin.set_low().unwrap();
-          delay.delay_ms(500);
-      }
-  ```)
+#code(lang: "rust", 
+  ```rust
+  loop {
+      led_pin.set_high().unwrap();
+      delay.delay_ms(500);
+      led_pin.set_low().unwrap();
+      delay.delay_ms(500);
+  }
+  ```
+)
 
 #pause
-#v(1em)
+
+#h(1em)
 
 それでは、それ以外のところは重要でないのか？
 
 #pause
+
 #align(center)[
   *とても重要*
 ]
 
-= 組み込みRustのデモの要点
+= 組み込みRustの解説
 
-== 重要な部分
+== 組み込みRustをやるのに知るべきこと
 
 - 優先度 高
+  - データシートを読む
   - `#![no_std]`
   - `#![no_main]` と `#[entry]`
   - `use panic_halt as _;`
   - `rp_pico::hal` と `embedded_hal`
   - `let mut pac = pac::Peripherals::take().unwrap();`
   - `let mut led_pin = pins.led.into_push_pull_output();`
+
 - 優先度 中
   - 組み込み用語
     - Peripherals
@@ -134,33 +143,40 @@
     - cortex
     - SIO
   - `rp_pico`のクレートの中身
+  - `defmt`クレート
 
-== 優先度 高
+== データシートを読む
+
+ラズピコは、RP2040というマイコンを使っている
+
+- RP2400のデータシート: #set_link("https://www.raspberrypi.com/products/rp2040/")
+- ボードのデータシート: #set_link("https://datasheets.raspberrypi.com/pico/pico-datasheet.pdf")
+
+どの部品がどのマイコンのピンに接続されているかを理解する
+
+#box(stroke: black, inset: 0.5em)[問題]
+
+- 内蔵LEDのGPIO番号を調べて、どのようにしたら点灯できるかを考えよう!!
+- RP2040に接続されている部品はどのようなものがあるかを調べよう!!
+
+== `#![no_std]`とは
+
 *`#![no_std]`*
 
-Rustの標準ライブラリを使わず、OSを使わないことを示す。
+- Rustの標準ライブラリは`core`#footnote[`core`クレートはプリミティブ型やアトミック操作], `alloc`#footnote[`alloc`クレートはヒープメモリを利用するが、組み込みはメモリが小さいので`Vec`が簡単に使えない。使い方は`embedded-alloc`クレート #set_link("https://github.com/rust-embedded/embedded-alloc")], `std`の三階層構造
+- `no_std`は、Rustの標準ライブラリ#set_link("https://doc.rust-lang.org/std") を使わず、OSを使わないことを示す。
+  - `println!`はOSを使っているので使えない 😭
+  - 外部ファイルの読み書きもできない 😭
 
-標準ライブラリ一覧の #set_link("https://doc.rust-lang.org/std")
-
-#v(1em)
-
-stdで使えないもので一番困るもの
-
-`Vec<T>` #set_link("https://doc.rust-lang.org/std/vec/struct.Vec.html")
-
-Vecが使えないと、String型も使えないので、文字列を扱うのが難しい#footnote[
-  使えないのは、ヒープ領域を用意する必要(malloc)があり、組み込みではメモリが少ないため
-]
-
-== 優先度 高
+== `#![no_main]`と`#[entry]`
 
 *`#![no_main]` と `#[entry]`*
 
-OSがない環境では、main関数は使えず、エントリーポイント(プログラムが始まるところ)を自分で指定する
+`no_std`環境では、main関数は使えず、自分でエントリーポイント(プログラムが始まるところ)を指定
 
 今回の例では、`#[entry]`でmain関数を指定している
 
-== 優先度 高
+== `panic_halt`
 
 *`use panic_halt as _;`*
 
@@ -174,7 +190,7 @@ OSがない環境では、main関数は使えず、エントリーポイント(�
 
 プログラム的には異常な動作だが、エラー文を出してプログラムを止めているので正常な動作
 
-== 優先度 高
+#pagebreak()
 
 *`use panic_halt as _;`*
 
@@ -187,67 +203,61 @@ OSがない環境では、main関数は使えず、エントリーポイント(�
 
 - エラーが出たら、プログラムを止める(無限ループ)
 
-== 優先度 高
+== 組み込み機器の抽象化
 
-*`rp_pico::hal` と `embedded_hal`*
+*`rp_pico::hal = rp2040_hal`*
 
-*HAL(Hardware Abstraction Layer)* とは、ハードウェアの抽象化レイヤー
+- `rp_pico` #set_link("https://docs.rs/rp-pico/latest/rp_pico/") はラズピコの*BSP(Board Support Package)*クレート
+  - コードを見てみると、すごく簡単に書かれている(ほかのボードも) #set_link("https://github.com/rp-rs/rp-hal-boards/tree/main/boards/rp-pico")
 
-抽象化レイヤーを使うことで、ハードウェアの差異を吸収 // #footnote[よくある勘違いで、抽象化するとプログラムが大きくなっていまうのでは？$arrow$コンパイルすることで最適化されて小さくなる]
+#box(stroke: black, inset: 0.5em)[なぜ簡単に書かれているのか？]
 
-#v(0.5em)
+- *HAL(Hardware Abstraction Layer)*: ハードウェアの抽象化レイヤー
+- 抽象化レイヤーを使うことで、ハードウェアの差異をうまく吸収してくれる
+- `rp2040_hal`クレートを用いると、簡単にRP2040のボードを作ることができる
 
-`rp_pico` #set_link("https://docs.rs/rp-pico/latest/rp_pico/") はRaspberry Pi
-Picoのハードウェアのクレート
 
-- `rp_pico`のクレートに「it re-exports the rp2040_hal crate」という記述がある
-  - `rp2040_hal` #set_link("https://docs.rs/rp2040-hal/latest/rp2040_hal/") はRaspberry Pi Picoのマイコンのクレート
-  - RP2400とは、Raspberry Pi Picoのマイコンのこと
-  - Raspberry Pi Picoはボード全体のことで*BSP (Board Support Package)*と呼ばれる
+#pagebreak()
 
-== 優先度 高
-
-*`rp_pico::hal` と `embedded_hal`*
+*`rp_pico::hal = rp2040_hal`*
 
 #figure(image("image/HAL.png", height: 85%))
 
-== 優先度 高
+#pagebreak()
 
-*`rp_pico::hal` と `embedded_hal`*
+*`embedded_hal`*
 
-`rp2040_hal`クレート #set_link("https://docs.rs/rp2040-hal/latest/rp2040_hal/") に次のような記述がある
+#box(stroke: black, inset: 0.5em)[問題意識]
 
-「This is an implementation of the `embedded-hal` traits for the RP2040
-microcontroller」
+ボードやマイコンが違ってもどれも似たような機能を持っているはずなのに、コードの書き方が変わってしまう
 
-- `embedded_hal`は、マイコンの抽象化レイヤー
+$=>$ Embedded devices Working Group (WG)が書き方を統一するために`embedded_hal`クレートを作成#footnote[トレイトを思い出そう！！]
 
-例えば、#set_link("https://crates.io/crates/embedded-hal/reverse_dependencies") には、`embedded_hal`に準拠したマイコンのクレートがある
+- OutputPinの例 #set_link("https://github.com/rust-embedded/embedded-hal/blob/master/embedded-hal/src/digital.rs")
+- `embedded_hal`に準拠したクレート一覧 #set_link("https://crates.io/crates/embedded-hal/reverse_dependencies")
 
-#v(1em)
-`embedded_hal`で継承されたBSPを使うことになるので、プログラミングをする際には意識することが多い。
-
-*言い換えると、`embedded_hal`さえ理解すれば、ほかのマイコンでも同様にプログラミングができる*
+*`embedded_hal`のおかげで複雑なクレートの関係をシンプルに*
 
 #figure(image("image/crate.png"))
 
-== 優先度 高
+== 組み込みで所有権を賢く使う
 
 *`let mut pac = pac::Peripherals::take().unwrap();`*
 
-#code(lang: "rust", ```rust
-      let pins = rp_pico::Pins::new(
-          pac.IO_BANK0,
-          pac.PADS_BANK0,
-          sio.gpio_bank0,
-          &mut pac.RESETS,
-      );
-  ```)
+#code(lang: "rust", 
+  ```rust
+  let pins = rp_pico::Pins::new(
+      pac.IO_BANK0,
+      pac.PADS_BANK0,
+      sio.gpio_bank0,
+      &mut pac.RESETS,
+  );
+  ```
+)
 
 で何度も出てくる `pac`とは何か？
 
 #pause
-#v(1em)
 
 `Peripheral Access Crate`の略で
 
@@ -257,22 +267,26 @@ microcontroller」
 
 #pause
 
+所有権のおかげで一度しか使われていないことを保証している！！
 
-△ 今回の場合、`pac.IO_BANK0`などが、ほかのところでは使えなくなっている(pins2は実装できない)
-
-== 優先度 高
+== 所有権をうまく使う
 
 *`let mut pac = pac::Peripherals::take().unwrap();`*
 
-*所有権システム*を使って、Peripheralが使われているのが一つだけであることを保証
+*所有権システム*でPeripheralが使われているのが一つだけであることを保証する
 
-#box(stroke: black, inset: 7pt)[メリット]
+#grid(
+  columns: (50%, 50%),
+  [
+    #box(stroke: black, inset: 7pt)[メリット]
+    - 同時アクセスによるデータ競合を防ぐ
+  ],
+  figure(
+    image("image/ownership.png")
+  )
+)
 
-- 同時アクセスによるデータ競合を防ぐ
-
-#figure(image("image/ownership.png", height: 50%))
-
-== 優先度 高
+== 型で状態変化を表す
 
 *`let mut led_pin = pins.led.into_push_pull_output();`*
 
@@ -289,7 +303,7 @@ LEDを点灯させるために出力モードを指定している。
 - `into_pull_up_input()`や `into_pull_down_input()`は、入力モード
   - スイッチを押したときに反応する
 
-== 優先度 高
+== 所有権をうまく使う
 
 *`let mut led_pin = pins.led.into_push_pull_output();`*
 
@@ -307,6 +321,10 @@ $arrow$ 出力モード専用のメソッドしか使えない
 
 = And more...
 
+== 組み込みRustの難しいところ
+
++ どのクレートにどの機能があるか？
+
 == 次にやること
 
 - UART通信 `rp2040-hal` #set_link("https://docs.rs/rp2040-hal/latest/rp2040_hal/uart/index.html")
@@ -321,6 +339,5 @@ $arrow$ 出力モード専用のメソッドしか使えない
 - probe-rs #set_link("https://probe.rs/")でデバッグ
 - `embedded-graphic` #set_link("https://docs.rs/embedded-graphics/latest/embedded_graphics/")でdisplay表示 (DrawTarget, Drawable)
 - `cortex-m` #set_link("https://docs.rs/cortex-m/latest/cortex_m/")で割り込み処理やスリープ
-- データシートを読む
 - std環境でのプログラミング 「The Rust on ESP Book」 #set_link("https://docs.esp-rs.org/book/overview/using-the-standard-library.html")
 - 組み込みOSのTOCKや組み込みLinuxなど

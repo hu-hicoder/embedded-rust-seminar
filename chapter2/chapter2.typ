@@ -69,7 +69,7 @@
 #absolute-place(dx: 15%, dy: 40%, [組み込みRust特有の機能の理解])
 #absolute-place(dx: 5%, dy: 65%, [型でコンパイルが通らない])
 #absolute-place(dx: 80%, dy: 65%, [基本的に英語の文献])
-#absolute-place(dx: 40%, dy: 110%, [どういうときにunsafeか])
+
 
 = 組み込みRustを試してみよう
 
@@ -122,28 +122,19 @@
   *とても重要*
 ]
 
-= 組み込みRustの解説
+= 組み込みRustの重要な概念
 
 == 組み込みRustをやるのに知るべきこと
 
-- 優先度 高
-  - データシートを読む
-  - `#![no_std]`
-  - `#![no_main]` と `#[entry]`
-  - `use panic_halt as _;`
-  - `rp_pico::hal` と `embedded_hal`
-  - `let mut pac = pac::Peripherals::take().unwrap();`
-  - `let mut led_pin = pins.led.into_push_pull_output();`
+組み込みRustをやる上で重要な概念
 
-- 優先度 中
-  - 組み込み用語
-    - Peripherals
-    - WATCHDOG
-    - clocks
-    - cortex
-    - SIO
-  - `rp_pico`のクレートの中身
-  - `defmt`クレート
+- データシートを読む
+- `#![no_std]`
+- `#![no_main]` と `#[entry]`
+- `use panic_halt as _;`
+- `rp_pico::hal` と `embedded_hal`
+- `let mut pac = pac::Peripherals::take().unwrap();`
+- `let mut led_pin = pins.led.into_push_pull_output();` のような型について
 
 == データシートを読む
 
@@ -165,8 +156,8 @@
 
 - Rustの標準ライブラリは`core`#footnote[`core`クレートはプリミティブ型やアトミック操作], `alloc`#footnote[`alloc`クレートはヒープメモリを利用するが、組み込みはメモリが小さいので`Vec`が簡単に使えない。使い方は`embedded-alloc`クレート #set_link("https://github.com/rust-embedded/embedded-alloc")], `std`の三階層構造
 - `no_std`は、Rustの標準ライブラリ#set_link("https://doc.rust-lang.org/std") を使わず、OSを使わないことを示す。
-  - `println!`はOSを使っているので使えない 😭
-  - 外部ファイルの読み書きもできない 😭
+  - `println!`はOSを使っているので使えない
+  - 外部ファイルの読み書きもできない
 
 == `#![no_main]`と`#[entry]`
 
@@ -190,7 +181,7 @@
 
 プログラム的には異常な動作だが、エラー文を出してプログラムを止めているので正常な動作
 
-#pagebreak()
+== `panic_halt`
 
 *`use panic_halt as _;`*
 
@@ -214,8 +205,7 @@
 
 - *HAL(Hardware Abstraction Layer)*: ハードウェアの抽象化レイヤー
 - 抽象化レイヤーを使うことで、ハードウェアの差異をうまく吸収してくれる
-- `rp2040_hal`クレートを用いると、簡単にRP2040のボードを作ることができる
-
+- `rp2040_hal`クレートを用いると、簡単にRP2040のボードを作ることができるはず
 
 #pagebreak()
 
@@ -262,7 +252,7 @@ $=>$ Embedded devices Working Group (WG)が書き方を統一するために`emb
 `Peripheral Access Crate`の略で
 
 #align(center)[
-  *マイコンのPeripheralを使うための許可証で一個しか使われていないことを保証するもの*
+  *マイコンのPeripheralを使うための許可証で、一個しか使われていないことを保証するもの*
 ]
 
 #pause
@@ -286,44 +276,102 @@ $=>$ Embedded devices Working Group (WG)が書き方を統一するために`emb
   )
 )
 
-== 型で状態変化を表す
+= 組み込みRustで開発する際に
 
+== Rustで組み込みの情報を得るには
+
++ どこで情報を得るか？
+  - クレートはどのように使うか？
+    - 使いたいクレートのexample
+      - 例: rp2040-hal#set_link("https://github.com/rp-rs/rp-hal/tree/main/rp2040-hal/examples")やrp-pico#set_link("https://github.com/rp-rs/rp-hal-boards/tree/main/boards/rp-pico/examples")のgithubのexampleを見る
+  - 使いたいメソッドでエラーがでたら
+    - Docs.rs
+      - これの読み方を覚えることが大事（次のスライド）
+
++ 開発が進まないなら
+  - 俺に聞いてくれ。そして一緒に考えよう。
+  - Rustの過度な神格化をやめ、CやPythonで書く
+
+== Docs.rsの読み方（型）
+
+考え方 (Lチカの場合)
+
++ Lチカでは、`set_high()`のメソッドを使いたい
++ docs.rsで`rp2040-hal`を検索
++ `set_high()`を検索し、型を確認
+#code(
+  lang: "rust",
+  ```rust
+  impl<I, P> OutputPin for Pin<I, FunctionSio<SioOutput>, P>
+  where
+      I: PinId, // Gpio0, Gpio1, ...
+      P: PullType, // PullUp, PullDown, ...
+  ```
+)
+4. Pinの型を満たすものに変換するものがないかを探す#footnote[
+  型変換に関するものなので、FromトレイトやIntoトレイトを使っていることが多い $->$ `into`から絞る
+]
+  
 *`let mut led_pin = pins.led.into_push_pull_output();`*
 
-`pins`の中から`led`を取り出して、`push_pull_output`に変換しているが、`push_pull_output`とは何だろうか?
+`let mut led_pin = pins.led.reconfigure::<FunctionSio<SioOutput>, PullDown>();`
 
-#pause
+== おめでとう
 
-LEDを点灯させるために出力モードを指定している。
-
-- `push_pull_output`は、出力モード
-  - LEDを光らす
-  - モーターを動かす
-  - 電流を流す
-- `into_pull_up_input()`や `into_pull_down_input()`は、入力モード
-  - スイッチを押したときに反応する
-
-== 所有権をうまく使う
-
-*`let mut led_pin = pins.led.into_push_pull_output();`*
-
-ここで、重要なのは型である。
-
-#figure(image("image/led_types.png"))
-
-詳しく書くと`Pin<Gpio25, FunctionSio<SioOutput>, PullDown>`となっている。
-
-これによって、led_pinは型によって出力モードであると制限される
-
-$arrow$ 出力モード専用のメソッドしか使えない
-
-- `led_pin.set_high()`や`led_pin.set_low()`
+組み込みRustの学習がおわりました
 
 = And more...
 
-== 組み込みRustの難しいところ
+== debugをするには
 
-+ どのクレートにどの機能があるか？
+elf2uf2-rsでは、printデバッグは簡単に使えない
+  - 使うには空いているピンやUSBなどを用いて通信を行う
+
+#h(1em)
+
+*probe-rs* #set_link("https://probe.rs/")を使うと便利#footnote[githubのスターが少ないのはなぜ]
+
++ ラズピコが２コ用意し、片方に
+
+== さらば`no_std`、こんにちは`std`
+
+組み込みRustでは高度なことをやりたいなら、マイコンはRP2400より*ESP32*
+
+- `std`環境でのプログラミングができるため
+  - 例) 簡易的な温度計サーバーを建てる
+  - 例) bluetooth通信をする
+
+- `std`環境でのプログラミング 「The Rust on ESP Book」 #set_link("https://docs.esp-rs.org/book/overview/using-the-standard-library.html")
+
+== スタックとヒープの話をしたので、flip-linkを語りたい
+
+#grid(
+  columns: (50%, 50%),
+  gutter: 2%,
+  figure(image("image/flipped.svg")),
+  [
+    #box(stroke: black, inset: 7pt)[flip-linkを使わないと]
+    + 普通はstackは下から積み上がる
+    + heap領域を破壊
+    + どのように動作するのか謎になる
+    
+    #box(stroke: black, inset: 7pt)[flip-linkを使うと]
+    + stackは上から積み上がる
+    + メモリの端までいくと*エラーが出る*
+  ]
+)
+
+
+== おすすめの書籍やサイト
+
+- 基礎から学ぶ 組込みRust (著者：中林 智之／井田 健太)
+  - 聖書です。読んでください。
+- The Embedded Rust Book(日本語版) #set_link("https://tomoyuki-nakabayashi.github.io/book/")
+  - 組み込みRustならではの機能がまとまっている
+- Interface 2023年5月号特集 質実剛健Rust言語
+  - 最新の情報が載っているし、`std`のことが書かれている貴重な文献
+- awesome-embedded-rust #set_link("https://github.com/rust-embedded/awesome-embedded-rust")
+
 
 == 次にやること
 
@@ -336,8 +384,6 @@ $arrow$ 出力モード専用のメソッドしか使えない
 - USB `rp2040-hal` #set_link("https://docs.rs/rp2040-hal/latest/rp2040_hal/usb/index.html") `usb_device` #set_link("https://docs.rs/usb-device/latest/usb_device/index.html")
 - ADC `rp2040-hal` #set_link("https://docs.rs/rp2040-hal/latest/rp2040_hal/adc/index.html")
 - `heapless` #set_link("https://docs.rs/heapless/latest/heapless/") でVecが使える
-- probe-rs #set_link("https://probe.rs/")でデバッグ
 - `embedded-graphic` #set_link("https://docs.rs/embedded-graphics/latest/embedded_graphics/")でdisplay表示 (DrawTarget, Drawable)
 - `cortex-m` #set_link("https://docs.rs/cortex-m/latest/cortex_m/")で割り込み処理やスリープ
-- std環境でのプログラミング 「The Rust on ESP Book」 #set_link("https://docs.esp-rs.org/book/overview/using-the-standard-library.html")
 - 組み込みOSのTOCKや組み込みLinuxなど

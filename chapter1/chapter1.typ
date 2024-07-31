@@ -59,10 +59,6 @@
 - Rustは最も愛されている言語として7年目を迎え、87%の開発者が使い続けたいと答えている。 #set_link("https://survey.stackoverflow.co/2022/#most-loved-dreaded-and-wanted-language-love-dread")
 - 最近のオープンソースはすべてRustで書かれていると言っても過言ではない#footnote[このスライドもRust製のTypstで作成]
 
-#h(2em)
-
-#align(center)[*Rust is God*]
-
 == Rustが好まれている理由
 
 #absolute-place(

@@ -245,7 +245,9 @@ $=>$ Embedded devices Working Group (WG)が書き方を統一するために`emb
   ```
 )
 
-で何度も出てくる `pac`とは何か？
+で何度も出てくる `pac`とは何か？#footnote[
+  `Pins::new`の引数に恐怖を覚えなくてもよい。なぜなら型推測があるから
+]
 
 #pause
 

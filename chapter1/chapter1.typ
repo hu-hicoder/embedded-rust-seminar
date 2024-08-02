@@ -107,7 +107,7 @@
         x = 6;
         println!("The value of x is: {}", x);
     }
-    ```,
+  ```,
 )
 
 = データ型
@@ -458,39 +458,103 @@ s1とs2は、同じ値を指している
 
 s2がs1の後に使えないのは、値を持っている所有権がs2に移動しているから
 
-== 所有権のイメージ(所有権の移動)
+== 所有権のイメージ(スコープ1)
+
+#code(
+  lang: "rust",
+  ```rust
+  fn main() {
+      let x = String::from("hello");
+      func();
+  }
+
+  fn func() {
+      let s1 = String::from("world");
+  }
+  ```
+)
+
+#grid(
+  columns: (33%, 33%, 33%),
+  gutter: 2%,
+  figure(
+    image("image/scope_free1.svg"),
+  ),
+  figure(
+    image("image/scope_free2.svg"),
+  ),
+  figure(
+    image("image/scope_free3.svg"),
+  )
+)
+
+funcのスコープの外で所有権を持っている`s1`が破棄される
+
+== 所有権のイメージ(スコープ2)
+
+#code(
+  lang: "rust",
+  ```rust
+  fn main() {
+      let x = String::from("hello");
+      let s2 = func();
+  }
+
+  fn func() -> String {
+      let s1 = String::from("world");
+      s1
+  }
+  ```
+)
 
 #grid(
   columns: (50%, 50%),
   gutter: 2%,
-  code(
-    lang: "rust",
-    ```rust
-    fn main() {
-        let x = String::from("hello world");
-        func(x);
-    }
-
-    fn func(s: String) {
-        println!("{}", s);
-    }
-    ```
+  figure(
+    image("image/scope1.svg"),
   ),
   figure(
-    image("image/xs.svg"),
-  ),
+    image("image/scope2.svg"),
+  )
 )
 
-#box(stroke: black, inset: 0.7em)[データの流れ]
 
-+ `x`がstack + ヒープにメモリ確保(`malloc`) + `x`がデータの所有権を持つ
-+ `s`がstack + 所有権の移動(move)
-+ `func`のスコープの外で`s`が破棄(push)、ヒープのメモリを解放(`free`)
 
-- データのコピーはコストがかかるが、今回の例ではコストが小さい
-- `func(x)`のあとで`x`は、メモリを解放されているので使うことはできない
+== 所有権のイメージ(所有権の移動)
 
-#pagebreak()
+#code(
+  lang: "rust",
+  ```rust
+  fn main() {
+      let x = String::from("hello world");
+      func(x);
+  }
+
+  fn func(s: String) {
+      println!("{}", s);
+  }
+  ```
+)
+
+#grid(
+  columns: (33%, 33%, 33%),
+  gutter: 2%,
+  figure(
+    image("image/move1.svg"),
+  ),
+  figure(
+    image("image/move2.svg"),
+  ),
+  figure(
+    image("image/move3.svg"),
+  )
+)
+
+引数に所有権を渡すと、所有権が移動する
+
+このあと、`x`を使うことができない
+
+== 所有権のイメージ(借用)
 
 #grid(
   columns: (50%, 50%),
@@ -509,64 +573,47 @@ s2がs1の後に使えないのは、値を持っている所有権がs2に移�
     ```
   ),
   figure(
-    image("image/xf.svg"),
+    image("image/reference.svg"),
   ),
 )
 
-`str`の実態はポインタと長さの2つの要素とヒープ上の文字列
-
-#box(stroke: black, inset: 0.4em)[データの流れ]
-
-+ `x`がstack + ヒープにメモリ確保(`malloc`) + `x`がデータの所有権を持つ
-+ `f`がstack + xを値を借りる + 所有権の移動が起こらない
-+ `func`のスコープの外で`f`が破棄(pop) + xに借用した値を返す
-+ `main`のスコープの外で`x`が破棄(push)、ヒープのメモリを解放(`free`)
-
-#pagebreak()
-
+- `f`は`x`の値を借りている
+- `f`のほうが寿命が短いので、`x`を参照できる
 - `func(&x)`のあとで`x`は、メモリを解放されていないので使うことができる
+- 参照している間に、`x`を変更することはできない
 
-#pagebreak()
+== では、こちらはどうなる？
 
-#grid(
-  columns: (70%, 30%),
-  align: top,
-  gutter: 2%,
-  [
-    #code(
-      lang: "rust",
-      ```rust
-      fn main() {
-          let x = f();
-      }
+#code(
+  lang: "rust",
+  ```rust
+  fn main() {
+      let x = f();
+  }
 
-      fn f() -> Vec<String> {
-          let mut v = vec![String::from("hello")];
-          let a: String = String::from("!!");
-          v.push(a);
-          v
-      }
-      ```
-    )
-    #code(
-      lang: "rust",
-      ```rust
-      fn main() {
-          let x = f();
-      }
-
-      fn f() -> Vec<&str> {
-          let v = vec!["hello", "world"];
-          let a: &str = "!!";
-          v.push(a);
-          v
-      }
-      ```
-    )
-  ],
-  []
+  fn f() -> Vec<String> {
+      let mut v = vec![String::from("hello")];
+      let a: String = String::from("!!");
+      v.push(a);
+      v
+  }
+  ```
 )
+#code(
+  lang: "rust",
+  ```rust
+  fn main() {
+      let x = f();
+  }
 
+  fn f() -> Vec<&str> {
+      let v = vec!["hello", "world"];
+      let a: &str = "!!";
+      v.push(a);
+      v
+  }
+  ```
+)
 #pagebreak()
 
 それではこちらはどうなる？

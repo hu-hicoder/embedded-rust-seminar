@@ -352,7 +352,7 @@ $=>$ Embedded devices Working Group (WG)が書き方を統一するために`emb
 
     - ラ(440 Hz)を鳴らす
 
-    - RP2040とコードと`rp2040_hal`クレート#set_link("https://docs.rs/rp2040-hal/latest/rp2040_hal/pwm/index.html") を見ながら理解しよう!!
+    - RP2040のデータシートとコードと`rp2040_hal`クレート#set_link("https://docs.rs/rp2040-hal/latest/rp2040_hal/pwm/index.html") を見ながら理解しよう!!
   ],
   figure(
     image("image/RA.svg")
@@ -398,8 +398,25 @@ $=>$ Embedded devices Working Group (WG)が書き方を統一するために`emb
     image("image/PWM_PH.png"),
     caption: [CSR_PH_CORRECTの設定]
   ),
-  []
+  figure(
+    image("image/PWM_period.png"),
+    caption: [周波数と周期]
+  )
 )
+
+#pagebreak()
+
+$ f_"PWM" & = 440 "Hz" \
+ f_"sys" & = 125 "MHz" $
+
+ここから最適なパラメーターの値は、
+
+$
+  "TOP" & = 28488 \
+  "CSR_PH_CORRECT" & = "false" \
+  "DIV_INT" & = 10 \
+  "DIV_FRAC" & = 0 \
+$
 
 = And more...
 
@@ -411,8 +428,6 @@ elf2uf2-rsでは、printデバッグは簡単に使えない
 #h(1em)
 
 *probe-rs* #set_link("https://probe.rs/")を使うと便利#footnote[githubのスターが少ないのはなぜ]
-
-+ ラズピコが２コ用意し、片方に
 
 == さらば`no_std`、こんにちは`std`
 

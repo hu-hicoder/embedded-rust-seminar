@@ -128,7 +128,7 @@
 
 組み込みRustをやる上で重要な概念
 
-- データシートを読む
+- データシートの情報
 - `#![no_std]`
 - `#![no_main]` と `#[entry]`
 - `use panic_halt as _;`
@@ -289,6 +289,8 @@ $=>$ Embedded devices Working Group (WG)が書き方を統一するために`emb
   - 使いたいメソッドでエラーがでたら
     - Docs.rs
       - これの読み方を覚えることが大事（次のスライド）
+  - RP2040の機能がわからない
+    - データシートを読む 
 
 + 開発が進まないなら
   - 俺に聞いてくれ。そして一緒に考えよう。
@@ -321,6 +323,83 @@ $=>$ Embedded devices Working Group (WG)が書き方を統一するために`emb
 == おめでとう
 
 組み込みRustの学習がおわりました
+
+= PWMを使ってみよう
+
+== PWMとは
+
+- Pulse Width Modulation (PWM)
+  - オンとオフの繰り返しスイッチングを行い、出力される電力を制御
+  - 使用例
+    - LEDの明るさを調整
+      - 人間には高速点滅していても気づかず、暗く見える
+    - モーターの回転数を調整
+    - サーボモーターの角度を調整
+
+#figure(
+  image("image/PWM.png", height: 40%)
+)
+
+== PWMで音を鳴らそう
+
+#grid(
+  columns: (50%, 50%),
+  gutter: 2%,
+  [
+    - PWMで音を鳴らすには、周波数とデューティ比を調整する
+      - 周波数: 音の高さ
+      - デューティ比: 音の長さ
+
+    - ラ(440 Hz)を鳴らす
+
+    - RP2040とコードと`rp2040_hal`クレート#set_link("https://docs.rs/rp2040-hal/latest/rp2040_hal/pwm/index.html") を見ながら理解しよう!!
+  ],
+  figure(
+    image("image/RA.svg")
+  )
+)
+
+== RP2040のPWMの構成
+
+#figure(
+  image("image/PWM_content.png"),
+  caption: [RP2040のPWMの構成]
+)
+
+== PWMであるGPIOを使うには
+
+#figure(
+  image("image/PWM_GPIO.png"),
+  caption: [RP2040のPWMのチャンネルとGPIOの関係]
+)
+
+- GPIO 0を使う場合。CHANNEL 0Aを使えばよい
+
+== PWMの周波数を設定する
+
+#grid(
+  columns: (50%, 50%),
+  gutter: 2%,
+  figure(
+    image("image/PWM_param.png"),
+    caption: [PWMで設定できるパラメータ]
+  ),
+    figure(
+    image("image/PWM_top.png"),
+    caption: [TOPの設定]
+  ),
+)
+
+#grid(
+  columns: (50%, 50%),
+  gutter: 2%,
+
+  figure(
+    image("image/PWM_PH.png"),
+    caption: [CSR_PH_CORRECTの設定]
+  ),
+  []
+)
 
 = And more...
 

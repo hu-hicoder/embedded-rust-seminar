@@ -12,10 +12,7 @@ use panic_probe as _;
 
 // Provide an alias for our BSP so we can switch targets quickly.
 // Uncomment the BSP you included in Cargo.toml, the rest of the code does not need to change.
-use rp_pico::{
-    self as bsp,
-    hal::gpio::{FunctionSio, PullDown, SioOutput},
-};
+use rp_pico as bsp;
 // use sparkfun_pro_micro_rp2040 as bsp;
 
 use bsp::hal::{
@@ -65,7 +62,8 @@ fn main() -> ! {
     // If you have a Pico W and want to toggle a LED with a simple GPIO output pin, you can connect an external
     // LED to one of the GPIO pins, and reference that pin here. Don't forget adding an appropriate resistor
     // in series with the LED.
-    let mut led_pin = pins.led.reconfigure::<FunctionSio<SioOutput>, PullDown>();
+    let mut led_pin = pins.led.into_push_pull_output();
+
     loop {
         info!("on!");
         led_pin.set_high().unwrap();
